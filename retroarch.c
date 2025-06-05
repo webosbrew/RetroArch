@@ -2,7 +2,7 @@
  *  Copyright (C) 2010-2014 - Hans-Kristian Arntzen
  *  Copyright (C) 2011-2021 - Daniel De Matteis
  *  Copyright (C) 2012-2015 - Michael Lelli
- *  Copyright (C) 2014-2017 - Jean-Andr� Santoni
+ *  Copyright (C) 2014-2017 - Jean-Andr  Santoni
  *  Copyright (C) 2016-2019 - Brad Parker
  *
  *  RetroArch is free software: you can redistribute it and/or modify it under the terms
@@ -47,6 +47,10 @@
 #if defined(_WIN32) && !defined(_XBOX) && !defined(__WINRT__)
 #include <objbase.h>
 #include <process.h>
+#endif
+
+#if defined(WEBOS)
+#include <sys/resource.h>
 #endif
 
 #include <stdio.h>
