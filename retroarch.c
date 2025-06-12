@@ -5887,6 +5887,16 @@ int rarch_main(int argc, char *argv[], void *data)
    }
 #endif
 
+#if defined(WEBOS)
+   // compatibility with webOS 3 - 5
+   if(getenv("XDG_RUNTIME_DIR") == NULL) {
+      setenv("XDG_RUNTIME_DIR", "/tmp/xdg", 0);
+    }
+
+   struct rlimit limit = {0, 0};
+   setrlimit(RLIMIT_CORE, &limit);
+#endif
+
    rtime_init();
 
 #if defined(ANDROID)
