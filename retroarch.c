@@ -7049,7 +7049,7 @@ static bool retroarch_parse_input_and_config(
                      RARCH_OVERRIDE_SETTING_LOG_TO_FILE, NULL);
 
                /* Cache log file path override */
-               rarch_log_file_set_override(optarg);
+               //rarch_log_file_set_override(optarg);
 
    /* First pass: Read the config file path and any directory overrides, so
     * they're in place when we load the config */
