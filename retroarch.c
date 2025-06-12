@@ -7037,6 +7037,10 @@ static bool retroarch_parse_input_and_config(
    }
 #endif
 
+   verbosity_enable();
+   retroarch_override_setting_set(
+      RARCH_OVERRIDE_SETTING_VERBOSITY, NULL);
+
    /* First pass: Read the config file path and any directory overrides, so
     * they're in place when we load the config */
    if (argc)
