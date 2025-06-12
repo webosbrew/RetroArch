@@ -7041,6 +7041,16 @@ static bool retroarch_parse_input_and_config(
    retroarch_override_setting_set(
       RARCH_OVERRIDE_SETTING_VERBOSITY, NULL);
 
+   /* Enable 'log to file' */
+               configuration_set_bool(settings,
+                     settings->bools.log_to_file, true);
+
+               retroarch_override_setting_set(
+                     RARCH_OVERRIDE_SETTING_LOG_TO_FILE, NULL);
+
+               /* Cache log file path override */
+               rarch_log_file_set_override(optarg);
+
    /* First pass: Read the config file path and any directory overrides, so
     * they're in place when we load the config */
    if (argc)

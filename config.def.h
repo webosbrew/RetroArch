@@ -1547,10 +1547,10 @@
 #define DEFAULT_MENU_WIDGET_SCALE_FACTOR_WINDOWED 1.0f
 
 /* Log level for the frontend */
-#define DEFAULT_FRONTEND_LOG_LEVEL 1
+#define DEFAULT_FRONTEND_LOG_LEVEL 0
 
 /* Log level for libretro cores (GET_LOG_INTERFACE). */
-#define DEFAULT_LIBRETRO_LOG_LEVEL 1
+#define DEFAULT_LIBRETRO_LOG_LEVEL 0
 
 #ifndef RARCH_DEFAULT_PORT
 #ifndef VITA
