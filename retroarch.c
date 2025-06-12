@@ -6896,7 +6896,7 @@ static bool retroarch_parse_input_and_config(
       { "record",             1, NULL, 'r' },
       { "recordconfig",       1, NULL, RA_OPT_RECORDCONFIG },
       { "size",               1, NULL, RA_OPT_SIZE },
-      { "verbose",            0, NULL, 'v' },
+      { "verbose",            1, NULL, 'v' },
 #ifdef HAVE_CONFIGFILE
       { "config",             1, NULL, 'c' },
       { "appendconfig",       1, NULL, RA_OPT_APPENDCONFIG },
