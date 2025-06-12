@@ -5898,6 +5898,11 @@ int rarch_main(int argc, char *argv[], void *data)
 #endif
 
 #if defined(WEBOS)
+   // compatibility with webOS 3
+   setenv("XDG_RUNTIME_DIR", "/tmp/xdg", 1);
+   setenv("XKB_CONFIG_ROOT", "/usr/share/X11/xkb", 1);
+   setenv("WAYLAND_DISPLAY", "wayland-0", 1);
+
    struct rlimit limit = {0, 0};
    setrlimit(RLIMIT_CORE, &limit);
 #endif
