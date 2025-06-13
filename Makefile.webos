@@ -142,7 +142,7 @@ ARCHFLAGS := -mcpu=cortex-a9 -mtune=cortex-a53 -mfloat-abi=softfp
 CFLAGS := $(ARCHFLAGS)
 CXXFLAGS := $(ARCHFLAGS) -fno-exceptions -fno-rtti -std=c++11 -D__STDC_CONSTANT_MACROS
 ASFLAGS := $(ARCHFLAGS)
-LDFLAGS := -Wl,-rpath=\$$ORIGIN/lib,--gc-sections
+LDFLAGS := -Wl,-rpath=\$$ORIGIN,--gc-sections
 INCLUDE_DIRS = -I$(WEBOS_INC_DIR)
 LIBRARY_DIRS = -L$(WEBOS_LIB_DIR)
 DEFINES := -DRARCH_INTERNAL -D_FILE_OFFSET_BITS=64 -UHAVE_STATIC_DUMMY
@@ -286,7 +286,8 @@ ipk: $(TARGET) sdl2
 	cp -t webos/dist -vf $(TARGET) webos/icon160.png
 	cp -t webos/dist/lib -vf $(WEBOS_LIB_DIR)/libstdc++.so.6
 ifeq ($(ADD_SDL2_LIB), 1)
-	cp -t webos/dist/lib -vf SDL/lib/libSDL2-2.0.so.0
+	# SDL2 library should be in RPATH
+	cp -t webos/dist -vf SDL/lib/libSDL2-2.0.so.0
 endif
 	$(STRIP) webos/dist/$(TARGET)
 	cd webos && ares-package dist
