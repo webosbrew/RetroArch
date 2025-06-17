@@ -1,8 +1,11 @@
 include version.all
 
-ifneq ($(CROSS_COMPILE),arm-webos-linux-gnueabi-)
+ifeq (,$(findstring webos-linux-,$(CROSS_COMPILE)))
     $(error You need webOS toolchain to build this. See https://github.com/webosbrew/native-toolchain)
 endif
+
+# Extract the architecture from the cross-compiler prefix. arm-webos-linux-gnueabi- -> arm, i586-webos-linux-gnu- -> i586
+WEBOS_ARCH := $(shell echo $(CROSS_COMPILE) | sed -e 's/^\(.*\)-webos-linux-\(.*\)-/\1/')
 
 ifdef SDKTARGETSYSROOT
     $(warning "OE-based toolchain isn't supported anymore. Please use https://github.com/webosbrew/native-toolchain")
@@ -79,7 +82,9 @@ HAVE_LANGEXTRA = 1
 HAVE_LIBRETRODB = 1
 HAVE_MENU = 1
 HAVE_MENU_COMMON = 1
+ifeq (arm,$(WEBOS_ARCH))
 HAVE_NEON = 1
+endif
 HAVE_NETWORKING = 1
 HAVE_IFINFO = 1
 HAVE_NETWORK_CMD = 1
@@ -138,7 +143,9 @@ DEF_FLAGS += -ffunction-sections -fdata-sections
 DEF_FLAGS += -I. -Ideps -Ideps/stb -DWEBOS=1 -MMD
 DEF_FLAGS += -Wall -Wno-unused-variable
 LIBS := -ldl -lz -lrt -pthread
+ifeq (arm,$(WEBOS_ARCH))
 ARCHFLAGS := -mcpu=cortex-a9 -mtune=cortex-a53 -mfloat-abi=softfp
+endif
 CFLAGS := $(ARCHFLAGS)
 CXXFLAGS := $(ARCHFLAGS) -fno-exceptions -fno-rtti -std=c++11 -D__STDC_CONSTANT_MACROS
 ASFLAGS := $(ARCHFLAGS)
