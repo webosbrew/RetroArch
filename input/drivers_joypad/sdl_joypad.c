@@ -504,15 +504,19 @@ static bool sdl_joypad_set_rumble(unsigned pad, enum retro_rumble_effect effect,
    }
 
 #if SDL_VERSION_ATLEAST(2, 0, 9)
-   if (joypad->rumble_effect == -3)
+   typedef int (*SDL_JoystickRumble_func)(SDL_Joystick *, Uint16, Uint16, Uint32);
+   SDL_JoystickRumble_func pSDL_JoystickRumble =
+      (SDL_JoystickRumble_func)SDL_LoadFunction(SDL_GetBasePath(), "SDL_JoystickRumble");
+
+   if (!pSDL_JoystickRumble ||
+       pSDL_JoystickRumble(joypad->joypad,
+                           efx.leftright.large_magnitude,
+                           efx.leftright.small_magnitude,
+                           efx.leftright.length) == -1)
    {
-      if (SDL_JoystickRumble(joypad->joypad, efx.leftright.large_magnitude, efx.leftright.small_magnitude, efx.leftright.length) == -1)
-      {
-         RARCH_WARN("[SDL]: Failed to rumble joypad %u: %s\n",
-                    pad, SDL_GetError());
-         joypad->rumble_effect = -2;
-         return false;
-      }
+      RARCH_WARN("[SDL]: Failed to rumble joypad %u: %s\n", pad, SDL_GetError());
+      joypad->rumble_effect = -2;
+      return false;
    }
 #endif
 
