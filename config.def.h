@@ -32,6 +32,8 @@
 #include "network/netplay/netplay_defines.h"
 #endif
 
+#define DEFAULT_LOG_TO_FILE true
+
 /* Required for 3DS display mode setting */
 #if defined(_3DS)
 #include "gfx/common/ctr_defines.h"
@@ -967,7 +969,7 @@
 
 #define DEFAULT_QUIT_PRESS_TWICE true
 
-#define DEFAULT_LOG_TO_FILE false
+#define DEFAULT_LOG_TO_FILE true
 
 #define DEFAULT_LOG_TO_FILE_TIMESTAMP false
 
@@ -1549,7 +1551,7 @@
 #define DEFAULT_MENU_WIDGET_SCALE_FACTOR_WINDOWED 1.0f
 
 /* Log level for the frontend */
-#define DEFAULT_FRONTEND_LOG_LEVEL 1
+#define DEFAULT_FRONTEND_LOG_LEVEL 0
 
 /* Log level for libretro cores (GET_LOG_INTERFACE). */
 #define DEFAULT_LIBRETRO_LOG_LEVEL 1

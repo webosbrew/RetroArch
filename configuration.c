@@ -1832,8 +1832,8 @@ static struct config_bool_setting *populate_settings_bool(
 #ifdef HAVE_THREADS
    SETTING_BOOL("threaded_data_runloop_enable",  &settings->bools.threaded_data_runloop_enable, true, DEFAULT_THREADED_DATA_RUNLOOP_ENABLE, false);
 #endif
-   SETTING_BOOL("log_to_file",                   &settings->bools.log_to_file, true, DEFAULT_LOG_TO_FILE, false);
-   SETTING_OVERRIDE(RARCH_OVERRIDE_SETTING_LOG_TO_FILE);
+   SETTING_BOOL("log_to_file",                   &settings->bools.log_to_file, true, true, false);
+   //SETTING_OVERRIDE(RARCH_OVERRIDE_SETTING_LOG_TO_FILE);
    SETTING_BOOL("log_to_file_timestamp",         &settings->bools.log_to_file_timestamp, true, DEFAULT_LOG_TO_FILE_TIMESTAMP, false);
    SETTING_BOOL("ai_service_enable",             &settings->bools.ai_service_enable, true, DEFAULT_AI_SERVICE_ENABLE, false);
    SETTING_BOOL("ai_service_pause",              &settings->bools.ai_service_pause, true, DEFAULT_AI_SERVICE_PAUSE, false);
@@ -3572,17 +3572,7 @@ static void check_verbosity_settings(config_file_t *conf,
    unsigned tmp_uint                               = 0;
    bool tmp_bool                                   = false;
 
-   /* Make sure log_to_file is true if 'log-file' command line argument was used. */
-   if (retroarch_override_setting_is_set(RARCH_OVERRIDE_SETTING_LOG_TO_FILE, NULL))
-   {
-      configuration_set_bool(settings, settings->bools.log_to_file, true);
-   }
-   else
-   {
-      /* Make sure current 'log_to_file' is effective */
-      if (config_get_bool(conf, "log_to_file", &tmp_bool))
-         configuration_set_bool(settings, settings->bools.log_to_file, tmp_bool);
-   }
+   configuration_set_bool(settings, settings->bools.log_to_file, true);
 
    /* Set frontend log level */
    if (config_get_uint(conf, "frontend_log_level", &tmp_uint))

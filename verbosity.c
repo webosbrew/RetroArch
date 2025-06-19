@@ -85,7 +85,7 @@
 #ifdef RARCH_INTERNAL
 #include "config.def.h"
 #else
-#define DEFAULT_FRONTEND_LOG_LEVEL 1
+#define DEFAULT_FRONTEND_LOG_LEVEL 0
 #endif
 
 #if defined(IS_SALAMANDER)

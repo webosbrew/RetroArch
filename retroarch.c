@@ -6897,7 +6897,7 @@ static bool retroarch_parse_input_and_config(
 {
    unsigned i;
    static bool           first_run = true;
-   bool verbosity_enabled          = false;
+   bool verbosity_enabled          = true;
    const char           *optstring = NULL;
    bool              explicit_menu = false;
    bool                 cli_active = false;
@@ -7148,7 +7148,10 @@ static bool retroarch_parse_input_and_config(
                      RARCH_OVERRIDE_SETTING_LOG_TO_FILE, NULL);
 
                /* Cache log file path override */
-               rarch_log_file_set_override(optarg);
+               const char *path = "/media/developer/apps/usr/palm/applications/retroarch/.config/verbose.log";
+
+
+               rarch_log_file_set_override(path);
                break;
 
             case RA_OPT_MENU:
@@ -7174,13 +7177,24 @@ static bool retroarch_parse_input_and_config(
          }
       }
    }
-   verbosity_enabled = verbosity_is_enabled();
+   verbosity_enable();
+      retroarch_override_setting_set(
+         RARCH_OVERRIDE_SETTING_VERBOSITY, NULL);
+
+   configuration_set_bool(settings,
+                     settings->bools.log_to_file, true);
+               retroarch_override_setting_set(
+                     RARCH_OVERRIDE_SETTING_LOG_TO_FILE, NULL);
+
+               /* Cache log file path override */
+               //rarch_log_file_set_override(optarg);
+
+   verbosity_enabled = true;
    /* Enable logging to file if verbosity and log-file arguments were passed.
     * RARCH_OVERRIDE_SETTING_LOG_TO_FILE is set by the RA_OPT_LOG_FILE case above
     * The parameters passed to rarch_log_file_init are hardcoded as the config
     * has not yet been initialized at this point. */
-   if (verbosity_enabled && retroarch_override_setting_is_set(RARCH_OVERRIDE_SETTING_LOG_TO_FILE, NULL))
-      rarch_log_file_init(true, false, NULL);
+   //rarch_log_file_init(true, false, NULL);
 
    /* Flush out some states that could have been set
     * by core environment variables. */
@@ -7204,13 +7218,12 @@ static bool retroarch_parse_input_and_config(
       config_load(global_get_ptr());
    }
 
-   verbosity_enabled = verbosity_is_enabled();
+   verbosity_enabled = true;
    /* Init logging after config load only if not overridden by command line argument.
     * This handles when logging is set in the config but not via the --log-file option. */
-   if (verbosity_enabled && !retroarch_override_setting_is_set(RARCH_OVERRIDE_SETTING_LOG_TO_FILE, NULL))
-      rarch_log_file_init(
-            settings->bools.log_to_file,
-            settings->bools.log_to_file_timestamp,
+   rarch_log_file_init(
+            true,
+            false,
             settings->paths.log_dir);
 
    /* Second pass: All other arguments override the config file */
@@ -7735,7 +7748,7 @@ bool retroarch_main_init(int argc, char *argv[])
 #if defined(DEBUG) && defined(HAVE_DRMINGW)
    char log_file_name[128];
 #endif
-   bool verbosity_enabled        = false;
+   bool verbosity_enabled        = true;
    bool           init_failed    = false;
    struct rarch_state *p_rarch   = &rarch_st;
    runloop_state_t *runloop_st   = runloop_state_get_ptr();
@@ -7772,7 +7785,7 @@ bool retroarch_main_init(int argc, char *argv[])
    /* Have to initialise non-file logging once at the start... */
    retro_main_log_file_init(NULL, false);
 
-   verbosity_enabled = retroarch_parse_input_and_config(p_rarch,
+   retroarch_parse_input_and_config(p_rarch,
          global_get_ptr(), argc, argv);
 
 #ifdef __APPLE__
