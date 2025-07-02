@@ -1,8 +1,8 @@
 include version.all
 
-ifneq ($(CROSS_COMPILE),arm-webos-linux-gnueabi-)
-    $(error You need webOS toolchain to build this. See https://github.com/webosbrew/native-toolchain)
-endif
+#ifneq ($(CROSS_COMPILE),arm-webos-linux-gnueabi-)
+#    $(error You need webOS toolchain to build this. See https://github.com/webosbrew/native-toolchain)
+#endif
 
 ifdef SDKTARGETSYSROOT
     $(warning "OE-based toolchain isn't supported anymore. Please use https://github.com/webosbrew/native-toolchain")
@@ -79,7 +79,7 @@ HAVE_LANGEXTRA = 1
 HAVE_LIBRETRODB = 1
 HAVE_MENU = 1
 HAVE_MENU_COMMON = 1
-HAVE_NEON = 1
+HAVE_NEON = 0
 HAVE_NETWORKING = 1
 HAVE_IFINFO = 1
 HAVE_NETWORK_CMD = 1
@@ -139,7 +139,15 @@ DEF_FLAGS += -ffunction-sections -fdata-sections
 DEF_FLAGS += -I. -Ideps -Ideps/stb -DWEBOS=1 -MMD
 DEF_FLAGS += -Wall -Wno-unused-variable
 LIBS := -ldl -lz -lrt -pthread
-ARCHFLAGS := -mcpu=cortex-a9 -mtune=cortex-a53 -mfloat-abi=softfp
+
+ifeq ($(findstring arm64,$(ARCH)),arm64)
+	ARCHFLAGS := -mcpu=cortex-a53 -mtune=cortex-a53
+else
+	ARCHFLAGS := -mcpu=cortex-a9 -mtune=cortex-a53 -mfloat-abi=softfp
+	HAVE_NEON = 1
+	NEON_CFLAGS = -mfpu=neon
+	NEON_ASFLAGS = -mfpu=neon
+endif
 CFLAGS := $(ARCHFLAGS)
 CXXFLAGS := $(ARCHFLAGS) -fno-exceptions -fno-rtti -std=c++11 -D__STDC_CONSTANT_MACROS
 ASFLAGS := $(ARCHFLAGS)
@@ -168,8 +176,6 @@ FREETYPE_LIBS := $(shell $(PKG_CONFIG) --libs freetype2)
 FONTCONFIG_CFLAGS := $(shell $(PKG_CONFIG) --cflags fontconfig)
 FONTCONFIG_LIBS := $(shell $(PKG_CONFIG) --libs fontconfig)
 MMAP_LIBS = -lc
-NEON_CFLAGS = -mfpu=neon
-NEON_ASFLAGS = -mfpu=neon
 NETWORKING_LIBS = -lc
 
 OBJDIR_BASE := obj-unix
