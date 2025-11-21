@@ -5972,6 +5972,11 @@ int rarch_main(int argc, char *argv[], void *data)
       setenv("EGL_PLATFORM", "wayland", 0);
    if (getenv("XDG_RUNTIME_DIR") == NULL)
       setenv("XDG_RUNTIME_DIR", "/tmp/xdg", 0);
+   /* wayland */
+   if (getenv("XKB_CONFIG_ROOT") == NULL)
+      setenv("XKB_CONFIG_ROOT", "/usr/share/X11/xkb", 1);
+   if (getenv("XDG_RUNTIME_DIR") == NULL)
+      setenv("WAYLAND_DISPLAY", "wayland-0", 1);
 
    struct rlimit limit = {0, 0};
    setrlimit(RLIMIT_CORE, &limit);

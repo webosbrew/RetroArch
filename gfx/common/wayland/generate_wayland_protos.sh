@@ -25,12 +25,15 @@ while [ $# -gt 0 ]; do
       -c|--codegen ) SCANNER_VERSION="$1"; shift ;;
       -h|--help ) die 0 "$usage" ;;
       -p|--protos ) PROTOS="$1"; shift ;;
-      -s|--share ) SHARE_DIR="$1/wayland-protocols"; shift ;;
+#     -s|--share ) SHARE_DIR="$1/wayland-protocols"; shift ;;
+      -s|--share ) SHARE_DIR=""; shift ;;
+
       * ) die 1 "Unrecognized option '$option', use -h for help." ;;
    esac
 done
 
-WAYSCAN="$(exists wayland-scanner || :)"
+WAYSCAN="/home/cscd98/Toolchains/buildroot-nc4-craig/output/host/bin/wayland-scanner"
+#WAYSCAN="$(exists wayland-scanner || :)"
 PKGCONFIG="$(exists pkg-config || :)"
 
 [ "${WAYSCAN}" ] || die 1 "Error: No wayscan in ($PATH)"
@@ -74,3 +77,10 @@ generate_source 'unstable/tablet' 'tablet-unstable-v2'
 generate_source 'staging/content-type' 'content-type-v1'
 generate_source 'staging/single-pixel-buffer' 'single-pixel-buffer-v1'
 generate_source 'staging/xdg-toplevel-icon' 'xdg-toplevel-icon-v1'
+
+WAYLAND_PROTOS='/home/cscd98/Toolchains/buildroot-nc4-craig/output/host/arm-webos-linux-gnueabi/sysroot/usr/share'
+
+generate_source 'wayland-webos' 'webos-shell'
+generate_source 'wayland-webos' 'webos-foreign'
+generate_source 'wayland-webos' 'webos-surface-group'
+generate_source 'wayland-webos' 'webos-input-manager'

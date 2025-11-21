@@ -27,6 +27,7 @@
 
 #include "../common/wayland_common.h"
 #include "../../frontend/frontend_driver.h"
+#include "../../gfx/video_driver.h"
 #include "../../input/common/wayland_common.h"
 #include "../../input/input_driver.h"
 #include "../../input/input_keymaps.h"
@@ -44,6 +45,26 @@
 
 #ifndef EGL_PLATFORM_WAYLAND_KHR
 #define EGL_PLATFORM_WAYLAND_KHR 0x31D8
+#endif
+
+#ifdef WEBOS
+extern void gfx_ctx_wl_get_video_size_webos(void*, unsigned*, unsigned*);
+extern void gfx_ctx_wl_destroy_resources_webos(gfx_ctx_wayland_data_t*);
+extern void gfx_ctx_wl_update_title_webos(void*);
+extern bool gfx_ctx_wl_init_webos(const void*, gfx_ctx_wayland_data_t**);
+extern bool gfx_ctx_wl_set_video_mode_common_size_webos(gfx_ctx_wayland_data_t*, unsigned, unsigned, bool);
+extern bool gfx_ctx_wl_set_video_mode_common_fullscreen_webos(gfx_ctx_wayland_data_t*, bool);
+extern bool gfx_ctx_wl_suppress_screensaver_webos(void*, bool);
+extern void gfx_ctx_wl_check_window_webos(gfx_ctx_wayland_data_t*, void (*)(void*, unsigned*, unsigned*), bool*, bool*, unsigned*, unsigned*);
+
+#define gfx_ctx_wl_get_video_size_common gfx_ctx_wl_get_video_size_webos
+#define gfx_ctx_wl_destroy_resources_common gfx_ctx_wl_destroy_resources_webos
+#define gfx_ctx_wl_update_title_common gfx_ctx_wl_update_title_webos
+#define gfx_ctx_wl_init_common gfx_ctx_wl_init_webos
+#define gfx_ctx_wl_set_video_mode_common_size gfx_ctx_wl_set_video_mode_common_size_webos
+#define gfx_ctx_wl_set_video_mode_common_fullscreen gfx_ctx_wl_set_video_mode_common_fullscreen_webos
+#define gfx_ctx_wl_suppress_screensaver gfx_ctx_wl_suppress_screensaver_webos
+#define gfx_ctx_wl_check_window_common gfx_ctx_wl_check_window_webos
 #endif
 
 static enum gfx_ctx_api wl_api   = GFX_CTX_NONE;
@@ -175,7 +196,7 @@ static bool gfx_ctx_wl_egl_init_context(gfx_ctx_wayland_data_t *wl)
    };
 
 #ifdef HAVE_OPENGLES
-#ifdef HAVE_OPENGLES2
+#if defined(HAVE_OPENGLES2) || defined(HAVE_OPENGLES3)
    static const EGLint egl_attribs_gles[] = {
       WL_EGL_ATTRIBS_BASE,
       EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
@@ -221,7 +242,7 @@ static bool gfx_ctx_wl_egl_init_context(gfx_ctx_wayland_data_t *wl)
          else
 #endif
 #endif
-#ifdef HAVE_OPENGLES2
+#if defined(HAVE_OPENGLES2) || defined(HAVE_OPENGLES3)
             attrib_ptr = egl_attribs_gles;
 #endif
 #endif

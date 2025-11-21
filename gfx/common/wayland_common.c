@@ -26,6 +26,7 @@
 
 #include "wayland_common.h"
 #include "../../frontend/frontend_driver.h"
+#include "../../gfx/video_driver.h"
 #include "../../verbosity.h"
 
 #ifdef HAVE_DBUS
@@ -61,6 +62,12 @@
 
 #ifndef F_SEAL_SHRINK
 #define F_SEAL_SHRINK		0x0002
+#endif
+
+#ifdef WEBOS
+#ifndef SYS_memfd_create
+#define SYS_memfd_create 279
+#endif
 #endif
 
 static const unsigned long retroarch_icon_data[] = {
