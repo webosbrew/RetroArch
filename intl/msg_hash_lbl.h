@@ -4108,6 +4108,12 @@ MSG_HASH(
    MENU_ENUM_LABEL_UPDATE_GLSL_SHADERS,
    "update_glsl_shaders"
    )
+#ifdef WEBOS
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_UPDATE_JAIL_CONFIG,
+   "Update Jail Config"
+)
+#endif
 MSG_HASH(
    MENU_ENUM_LABEL_UPDATE_LAKKA,
    "update_lakka"

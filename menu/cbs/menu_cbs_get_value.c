@@ -1902,6 +1902,9 @@ static int menu_cbs_init_bind_get_string_representation_compare_label(
          case MENU_ENUM_LABEL_UPDATE_CG_SHADERS:
          case MENU_ENUM_LABEL_UPDATE_GLSL_SHADERS:
          case MENU_ENUM_LABEL_UPDATE_SLANG_SHADERS:
+#ifdef WEBOS
+         case MENU_ENUM_LABEL_VALUE_UPDATE_JAIL_CONFIG:
+#endif
          case MENU_ENUM_LABEL_QUICK_MENU_START_RECORDING:
          case MENU_ENUM_LABEL_QUICK_MENU_START_STREAMING:
          case MENU_ENUM_LABEL_CHEAT_RELOAD_CHEATS:

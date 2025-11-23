@@ -421,6 +421,12 @@ MSG_HASH(
    MENU_ENUM_LABEL_VALUE_UPDATE_SLANG_SHADERS,
    "Update Slang Shaders"
    )
+#ifdef WEBOS
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_UPDATE_JAIL_CONFIG,
+      "Update Jail Config"
+   )
+#endif
 
 /* Main Menu > Information */
 

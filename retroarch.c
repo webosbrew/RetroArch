@@ -221,6 +221,10 @@
 #include "lakka.h"
 #endif
 
+#ifdef WEBOS
+#include "platform/webos/init.h"
+#endif
+
 #define _PSUPP(var, name, desc) printf("  %s:\n\t\t%s: %s\n", name, desc, var ? "yes" : "no")
 
 #define FAIL_CPU(simd_type) do { \
@@ -7823,6 +7827,10 @@ bool retroarch_main_init(int argc, char *argv[])
     * want to do change the default directories.
     */
    dir_check_config();
+#endif
+
+#ifdef WEBOS
+   init_platform_webos();
 #endif
 
 #ifdef HAVE_ACCESSIBILITY

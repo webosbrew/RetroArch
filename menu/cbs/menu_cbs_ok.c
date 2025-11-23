@@ -110,6 +110,10 @@
 #include "../../steam/steam.h"
 #endif
 
+#ifdef WEBOS
+#include "../../platform/webos/init.h"
+#endif
+
 enum
 {
    ACTION_OK_LOAD_PRESET = 0,
@@ -8944,6 +8948,31 @@ static int action_ok_core_steam_uninstall(
 }
 #endif
 
+#ifdef WEBOS
+static int action_ok_webos_jailer_fix(const char *path,
+   const char *label, unsigned type, size_t idx, size_t entry_idx)
+{
+   const bool success = apply_webos_jailer_fix();
+
+   if (success)
+   {
+      runloop_msg_queue_push("Jailer update succeeded, please restart your TV",
+                             28, 1, 180, false, NULL,
+                             MESSAGE_QUEUE_ICON_DEFAULT,
+                             MESSAGE_QUEUE_CATEGORY_INFO);
+   }
+   else
+   {
+      runloop_msg_queue_push("Jailer update not required or failed",
+                             25, 1, 180, false, NULL,
+                             MESSAGE_QUEUE_ICON_DEFAULT,
+                             MESSAGE_QUEUE_CATEGORY_ERROR);
+   }
+
+   return 0;
+}
+#endif
+
 static int is_rdb_entry(enum msg_hash_enums enum_idx)
 {
    switch (enum_idx)
@@ -9071,6 +9100,9 @@ static int menu_cbs_init_bind_ok_compare_label(menu_file_list_cbs_t *cbs,
          {MENU_ENUM_LABEL_UPDATE_GLSL_SHADERS,                 action_ok_update_shaders_glsl},
          {MENU_ENUM_LABEL_UPDATE_CG_SHADERS,                   action_ok_update_shaders_cg},
          {MENU_ENUM_LABEL_UPDATE_SLANG_SHADERS,                action_ok_update_shaders_slang},
+#ifdef WEBOS
+         {MENU_ENUM_LABEL_UPDATE_JAIL_CONFIG,                  action_ok_webos_jailer_fix},
+#endif
 #endif
 #endif
 #ifdef HAVE_AUDIOMIXER

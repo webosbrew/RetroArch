@@ -15044,6 +15044,14 @@ bool menu_displaylist_ctl(enum menu_displaylist_ctl_state type,
 #endif
 #endif /* !defined(_3DS) */
 #endif /* HAVE_COMPRESSION */
+#ifdef WEBOS
+               if (menu_entries_append(info->list,
+                  msg_hash_to_str(MENU_ENUM_LABEL_VALUE_UPDATE_JAIL_CONFIG),
+                  msg_hash_to_str(MENU_ENUM_LABEL_UPDATE_JAIL_CONFIG),
+                  MENU_ENUM_LABEL_UPDATE_JAIL_CONFIG,
+                  MENU_SETTING_ACTION, 0, 0, NULL))
+               count++;
+#endif /* WEBOS */
 #endif
             }
 

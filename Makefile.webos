@@ -26,6 +26,7 @@ SDL2_PREBUILT_ARCHIVE ?= https://github.com/webosbrew/SDL-webOS/releases/downloa
 APP_PACKAGE_NAME ?= com.retroarch.webos
 IPK_VERSION := $(shell grep '#define PACKAGE_VERSION' version.all | sed -E 's/.*"([0-9]+\.[0-9]+\.[0-9]+)".*/\1/')
 
+HAVE_WEBOS = 1
 DEBUG ?= 0
 
 HAVE_CLOUDSYNC = 1
@@ -137,7 +138,7 @@ TARGET = retroarch
 OBJ :=
 LINK := $(CC)
 DEF_FLAGS += -ffunction-sections -fdata-sections
-DEF_FLAGS += -I. -Ideps -Ideps/stb -DWEBOS=1 -MMD
+DEF_FLAGS += -I. -Ideps -Ideps/stb -MMD
 DEF_FLAGS += -Wall -Wno-unused-variable
 LIBS := -ldl -lz -lrt -pthread
 ifeq ($(findstring arm64,$(ARCH)),arm64)
