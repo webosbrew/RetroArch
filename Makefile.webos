@@ -290,8 +290,8 @@ clean:
 	$(Q)rm -f $(TARGET)
 	$(Q)rm -f *.d
 	$(Q)rm -rf SDL
-	$(Q)rm -rf webos/*.ipk
-	$(Q)rm -rf webos/dist
+	$(Q)rm -rf pkg/webos/*.ipk
+	$(Q)rm -rf pkg/webos/dist
 
 sdl2: $(TARGET)
 ifeq ($(ADD_SDL2_LIB), 1)
@@ -301,22 +301,22 @@ ifeq ($(ADD_SDL2_LIB), 1)
 endif
 
 ipk: $(TARGET) sdl2
-	rm -rf webos/dist
-	mkdir -p webos/dist/lib
-	echo "$$APPINFO" > webos/dist/appinfo.json
-	cp -t webos/dist -vf $(TARGET) webos/icon160.png
-	cp -t webos/dist/lib -vf $(WEBOS_USR_LIB_DIR)/libstdc++.so.6
-	cp -t webos/dist/lib -vf $(WEBOS_LIB_DIR)/libatomic.so.1
+	rm -rf pkg/webos/dist
+	mkdir -p pkg/webos/dist/lib
+	echo "$$APPINFO" > pkg/webos/dist/appinfo.json
+	cp -t pkg/webos/dist -vf $(TARGET) pkg/webos/icon160.png
+	cp -t pkg/webos/dist/lib -vf $(WEBOS_USR_LIB_DIR)/libstdc++.so.6
+	cp -t pkg/webos/dist/lib -vf $(WEBOS_LIB_DIR)/libatomic.so.1
 ifeq ($(ADD_SDL2_LIB), 1)
-	cp -t webos/dist/lib -vf SDL/lib/libSDL2-2.0.so.0
+	cp -t pkg/webos/dist/lib -vf SDL/lib/libSDL2-2.0.so.0
 endif
 ifneq ($(DEBUG), 1)
-	$(STRIP) webos/dist/$(TARGET)
+	$(STRIP) pkg/webos/dist/$(TARGET)
 endif
-	cd webos && ares-package dist
+	cd pkg/webos && ares-package dist
 
 install: ipk
-	ares-install webos/$(APP_PACKAGE_NAME)_$(IPK_VERSION)_$(ARCH).ipk
+	ares-install pkg/webos/$(APP_PACKAGE_NAME)_$(IPK_VERSION)_$(ARCH).ipk
 
 launch: install
 	ares-launch $(APP_PACKAGE_NAME)
