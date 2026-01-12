@@ -490,6 +490,15 @@ bool gfx_ctx_wl_init_webos(
    int i;
    gfx_ctx_wayland_data_t *wl;
 
+   FILE *early_log = fopen("/tmp/retroarch.log", "w");
+   if (early_log)
+   {
+      fprintf(early_log, "gfx_ctx_wl_init_webos called!\n");
+      fprintf(early_log, "About to initialize Wayland fallbacks\n");
+      fflush(early_log);
+      fclose(early_log);
+   }
+
    *wwl = calloc(1, sizeof(gfx_ctx_wayland_data_t));
    wl = *wwl;
 
