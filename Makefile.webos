@@ -220,6 +220,7 @@ define APPINFO
     "version": "$(IPK_VERSION)",
     "vendor": "webosbrew.org",
     "title": "RetroArch",
+    "splashBackground":"splash.png",
     "icon": "icon160.png",
     "main": "retroarch",
     "iconColor": "#333333",
@@ -304,7 +305,7 @@ ipk: $(TARGET) sdl2
 	rm -rf webos/dist
 	mkdir -p webos/dist/lib
 	echo "$$APPINFO" > webos/dist/appinfo.json
-	cp -t webos/dist -vf $(TARGET) webos/icon160.png
+	cp -t webos/dist -vf $(TARGET) webos/icon160.png webos/splash.png
 	cp -t webos/dist/lib -vf $(WEBOS_USR_LIB_DIR)/libstdc++.so.6
 	cp -t webos/dist/lib -vf $(WEBOS_LIB_DIR)/libatomic.so.1
 ifeq ($(ADD_SDL2_LIB), 1)
