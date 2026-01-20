@@ -220,6 +220,7 @@ define APPINFO
     "version": "$(IPK_VERSION)",
     "vendor": "webosbrew.org",
     "title": "RetroArch",
+    "splashBackground":"splash.png",
     "icon": "icon160.png",
     "main": "retroarch",
     "iconColor": "#333333",
