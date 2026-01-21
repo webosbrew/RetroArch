@@ -192,6 +192,10 @@ static const toplevel_listener_t xdg_toplevel_listener = {0};
 
 static bool gfx_ctx_wl_egl_init_context(gfx_ctx_wayland_data_t *wl)
 {
+   RARCH_LOG("[Wayland/EGL] gfx_ctx_wl_egl_init_context\n");
+
+   const char *api_str = "unknown";
+
    static const EGLint egl_attribs_gl[] = {
       WL_EGL_ATTRIBS_BASE,
       EGL_RENDERABLE_TYPE, EGL_OPENGL_BIT,
@@ -199,7 +203,9 @@ static bool gfx_ctx_wl_egl_init_context(gfx_ctx_wayland_data_t *wl)
    };
 
 #ifdef HAVE_OPENGLES
+   RARCH_LOG("[Wayland/EGL] HAVE_OPENGLES\n");
 #if defined(HAVE_OPENGLES2) || defined(HAVE_OPENGLES3)
+   RARCH_LOG("[Wayland/EGL] Creating egl_attribs_gles\n");
    static const EGLint egl_attribs_gles[] = {
       WL_EGL_ATTRIBS_BASE,
       EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
@@ -208,8 +214,11 @@ static bool gfx_ctx_wl_egl_init_context(gfx_ctx_wayland_data_t *wl)
 #endif
 
 #ifdef HAVE_OPENGLES3
+   RARCH_LOG("[Wayland/EGL] HAVE_OPENGLES3\n");
 #ifdef EGL_KHR_create_context
+   RARCH_LOG("[Wayland/EGL] EGL_KHR_create_context\n");
    static const EGLint egl_attribs_gles3[] = {
+      RARCH_LOG("[Wayland/EGL] Creating egl_attribs_gles3\n");
       WL_EGL_ATTRIBS_BASE,
       EGL_RENDERABLE_TYPE, EGL_OPENGL_ES3_BIT_KHR,
       EGL_NONE,
@@ -234,6 +243,7 @@ static bool gfx_ctx_wl_egl_init_context(gfx_ctx_wayland_data_t *wl)
       case GFX_CTX_OPENGL_API:
 #ifdef HAVE_OPENGL
          attrib_ptr = egl_attribs_gl;
+         api_str = "OpenGL";
 #endif
          break;
       case GFX_CTX_OPENGL_ES_API:
@@ -241,18 +251,25 @@ static bool gfx_ctx_wl_egl_init_context(gfx_ctx_wayland_data_t *wl)
 #ifdef HAVE_OPENGLES3
 #ifdef EGL_KHR_create_context
          if (g_egl_major >= 3)
+         {
             attrib_ptr = egl_attribs_gles3;
+            api_str = "OpenGL ES3";
+         }
          else
 #endif
 #endif
 #if defined(HAVE_OPENGLES2) || defined(HAVE_OPENGLES3)
+         {
             attrib_ptr = egl_attribs_gles;
+            api_str = "OpenGL ES2";
+         }
 #endif
 #endif
          break;
       case GFX_CTX_OPENVG_API:
 #ifdef HAVE_VG
          attrib_ptr = egl_attribs_vg;
+         api_str = "OpenVG";
 #endif
          break;
       case GFX_CTX_NONE:
@@ -269,6 +286,9 @@ static bool gfx_ctx_wl_egl_init_context(gfx_ctx_wayland_data_t *wl)
       egl_report_error();
       return false;
    }
+
+   RARCH_LOG("[Wayland/EGL] Initialized %s context (EGL %d.%d, %d configs).\n", api_str, (int)major, (int)minor, (int)n);
+
    if (n == 0 || !wl->egl.config)
       return false;
    return true;
