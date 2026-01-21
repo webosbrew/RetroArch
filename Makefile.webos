@@ -27,7 +27,7 @@ APP_PACKAGE_NAME ?= com.retroarch.webos
 IPK_VERSION := $(shell grep '#define PACKAGE_VERSION' version.all | sed -E 's/.*"([0-9]+\.[0-9]+\.[0-9]+)".*/\1/')
 
 WEBOS = 1
-DEBUG ?= 0
+DEBUG ?= 1
 
 HAVE_CLOUDSYNC = 1
 HAVE_SCREENSHOTS = 1

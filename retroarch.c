@@ -7826,6 +7826,31 @@ static void retroarch_validate_cpu_features(void)
 #endif
 }
 
+#include <execinfo.h>
+#include <signal.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <fcntl.h>
+
+void handler(int sig)
+{
+   void *array[20];
+   size_t size;
+   int fd;
+
+   fd = open("/tmp/retroarch.log", O_WRONLY | O_CREAT | O_APPEND, 0644);
+   if (fd < 0)
+       fd = STDERR_FILENO; /* fallback if open fails */
+
+   dprintf(fd, "Caught signal %d, dumping backtrace:\n", sig);
+
+   size = backtrace(array, 20);
+   backtrace_symbols_fd(array, size, fd);
+
+   close(fd);
+   _exit(1);
+}
+
 /**
  * retroarch_main_init:
  * @argc                 : Count of (commandline) arguments.
@@ -7837,6 +7862,12 @@ static void retroarch_validate_cpu_features(void)
  **/
 bool retroarch_main_init(int argc, char *argv[])
 {
+   signal(SIGSEGV, handler);  /* segmentation fault */
+   signal(SIGABRT, handler);  /* abort() */
+   signal(SIGFPE,  handler);  /* divide by zero, etc */
+   signal(SIGILL,  handler);  /* illegal instruction */
+   signal(SIGBUS,  handler);  /* bus error */
+
 #if defined(DEBUG) && defined(HAVE_DRMINGW)
    char log_file_name[128];
 #endif
