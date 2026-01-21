@@ -217,8 +217,8 @@ static bool gfx_ctx_wl_egl_init_context(gfx_ctx_wayland_data_t *wl)
    RARCH_LOG("[Wayland/EGL] HAVE_OPENGLES3\n");
 #ifdef EGL_KHR_create_context
    RARCH_LOG("[Wayland/EGL] EGL_KHR_create_context\n");
+   RARCH_LOG("[Wayland/EGL] Creating egl_attribs_gles3\n");
    static const EGLint egl_attribs_gles3[] = {
-      RARCH_LOG("[Wayland/EGL] Creating egl_attribs_gles3\n");
       WL_EGL_ATTRIBS_BASE,
       EGL_RENDERABLE_TYPE, EGL_OPENGL_ES3_BIT_KHR,
       EGL_NONE,
