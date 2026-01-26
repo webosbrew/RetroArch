@@ -20,7 +20,8 @@ jobs:
     - name: Compile RA
       run: |
         set -o pipefail
-        xcodebuild -workspace pkg/apple/RetroArch.xcworkspace -scheme RetroArch -config Release -xcconfig pkg/apple/GitHubCI.xcconfig -derivedDataPath build | xcpretty --color
+        xcodebuild -workspace pkg/apple/RetroArch.xcworkspace -scheme RetroArch \
+        -config Release -xcconfig pkg/apple/GitHubCI.xcconfig
 
     - name: Get short SHA
       id: slug
