@@ -724,7 +724,7 @@ const char *hw_render_context_name(
    if (type == RETRO_HW_CONTEXT_OPENGL_CORE)
       return "glcore";
 #endif
-#ifdef HAVE_OPENGL
+#if defined(HAVE_OPENGL) || defined(HAVE_OPENGLES) || defined(HAVE_OPENGLES2) || defined(HAVE_OPENGLES3) || defined(HAVE_OPENGLES3_1) || defined(HAVE_OPENGLES3_2)
    switch (type)
    {
       case RETRO_HW_CONTEXT_OPENGLES2:

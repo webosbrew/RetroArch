@@ -2251,8 +2251,19 @@ bool runloop_environment_cb(unsigned cmd, void *data)
             }
             else if (memcmp(video_driver_name, "gl", sizeof("gl")) == 0)
             {
+#if defined(HAVE_OPENGLES3_2) || defined(HAVE_OPENGLES3_1)
+               *cb = RETRO_HW_CONTEXT_OPENGLES_VERSION;
+               RARCH_LOG("[Environ] GET_PREFERRED_HW_RENDER: RETRO_HW_CONTEXT_OPENGLES_VERSION.\n");
+#elif defined(HAVE_OPENGLES3)
+               *cb = RETRO_HW_CONTEXT_OPENGLES3;
+               RARCH_LOG("[Environ] GET_PREFERRED_HW_RENDER: RETRO_HW_CONTEXT_OPENGLES3.\n");
+#elif defined(HAVE_OPENGLES) || defined(HAVE_OPENGLES2)
+               *cb = RETRO_HW_CONTEXT_OPENGLES2;
+               RARCH_LOG("[Environ] GET_PREFERRED_HW_RENDER: HAVE_OPENGLES2.\n");
+#elif defined(HAVE_OPENGL) || defined(HAVE_OPENGL1)
                *cb = RETRO_HW_CONTEXT_OPENGL;
                RARCH_LOG("[Environ] GET_PREFERRED_HW_RENDER: RETRO_HW_CONTEXT_OPENGL.\n");
+#endif
             }
             else if (memcmp(video_driver_name, "vulkan", sizeof("vulkan")) == 0)
             {
