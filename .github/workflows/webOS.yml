@@ -95,6 +95,8 @@ jobs:
         with:
           path: /tmp/sdl2-prebuilt
           key: sdl2-prebuilt-${{ steps.sdl2.outputs.name }}
+          restore-keys: |
+            sdl2-prebuilt-
 
       - name: Download SDL2 prebuilt
         if: steps.sdl2-cache.outputs.cache-hit != 'true'
