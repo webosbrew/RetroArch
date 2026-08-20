@@ -246,6 +246,9 @@ void rarch_log_file_deinit(void);
 
 size_t rarch_log_file_set_override(const char *path);
 
+#ifdef ANDROID
+void retro_main_log_file_reopen(void);
+#endif
 
 RETRO_END_DECLS
 

@@ -47,6 +47,7 @@
 
 #ifdef ANDROID
 #include <android/log.h>
+#include <sys/stat.h>
 #endif
 
 #if defined(_WIN32)
@@ -111,6 +112,9 @@ typedef struct verbosity_state
 
    /* Large array last: avoids padding before it */
    char override_path[PATH_MAX_LENGTH];
+#ifdef ANDROID
+   char log_path[PATH_MAX_LENGTH];
+#endif
 } verbosity_state_t;
 
 /* TODO/FIXME - static public global variables */
@@ -208,6 +212,10 @@ void retro_main_log_file_init(const char *path, bool append)
     * crash, so a line that is still sitting in a buffer when the
     * process dies is a line that was not worth writing.  Given that,
     * the buffer only added an allocation and a copy per line. */
+#ifdef ANDROID
+   strlcpy(main_verbosity_st.log_path,
+      path, sizeof(main_verbosity_st.log_path));
+#endif
 }
 
 void retro_main_log_file_deinit(void)
@@ -656,3 +664,28 @@ void rarch_log_file_deinit(void)
    if (!main_verbosity_st.fp) /* ...initialise logging to console */
       retro_main_log_file_init(NULL, false);
 }
+
+#ifdef ANDROID
+// reopening the app from the launcher/recents after background
+// does not re-exec rarch_main() as long as the process is still alive
+void retro_main_log_file_reopen(void)
+{
+   FILE *old_fp;
+   FILE *new_fp;
+
+   if (!main_verbosity_st.initialized ||
+       !main_verbosity_st.fp ||
+       !main_verbosity_st.log_path[0])
+      return;
+
+   new_fp = (FILE*)fopen_utf8(main_verbosity_st.log_path, "ab");
+
+   if (!new_fp)
+      return;
+
+   old_fp = main_verbosity_st.fp;
+   main_verbosity_st.fp = new_fp;
+
+   fclose(old_fp);
+}
+#endif

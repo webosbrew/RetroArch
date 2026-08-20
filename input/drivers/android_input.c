@@ -804,6 +804,11 @@ static void android_input_poll_main_cmd(void)
          if (cmd == APP_CMD_START)
             android_run_lifecycle_hook(android_app, "switch");
 #endif
+
+#ifdef ANDROID
+         if (cmd == APP_CMD_RESUME)
+            retro_main_log_file_reopen();
+#endif
          break;
       }
 
