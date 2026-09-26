@@ -1,0 +1,154 @@
+/*
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
+ *
+ * Licensed under the Oculus SDK License Agreement (the "License");
+ * you may not use the Oculus SDK except in compliance with the License,
+ * which is provided at the time of installation or download, or which
+ * otherwise accompanies this software in either electronic or hard copy form.
+ *
+ * You may obtain a copy of the License at
+ * https://developer.oculus.com/licenses/oculussdk/
+ *
+ * Unless required by applicable law or agreed to in writing, the Oculus SDK
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/************************************************************************************
+
+Filename    :   PanelRenderer.cpp
+Content     :   Class that manages and renders quad-based panels with custom shaders.
+Created     :   September 19, 2019
+Authors     :   Federico Schliemann
+
+*************************************************************************************/
+
+#include "PanelRenderer.h"
+
+#include "GlGeometry.h"
+
+using OVR::Matrix4f;
+using OVR::Posef;
+using OVR::Quatf;
+using OVR::Vector2f;
+using OVR::Vector3f;
+using OVR::Vector4f;
+
+namespace OVRFW {
+
+static const char* VertexSrc = R"glsl(
+attribute vec4 Position;
+attribute vec2 TexCoord;
+
+varying highp vec2 oTexCoord;
+
+void main()
+{
+	gl_Position = TransformVertex( Position );
+	oTexCoord = TexCoord;
+}
+)glsl";
+
+static const char* FragmentSrc = R"glsl(
+uniform highp vec4 ChannelEnable;
+uniform highp vec2 GraphOffset;
+uniform highp vec4 ChannelColor0;
+uniform highp vec4 ChannelColor1;
+uniform highp vec4 ChannelColor2;
+uniform highp vec4 ChannelColor3;
+uniform ChannelData
+{
+	highp vec4 dataSample[256];
+} cd;
+
+varying highp vec2 oTexCoord;
+
+void main()
+{
+	vec2 pixelPos = vec2( (oTexCoord.x + GraphOffset.x) * 256.0, oTexCoord.y * 256.0);
+	vec4 dataS = cd.dataSample[ int(pixelPos.x) & 0x00FF ];
+
+	vec4 noData = vec4(0);
+	float invCoord = 1.0 - oTexCoord.y;
+
+	// first channel 
+	vec4 color0 = dataS.x > invCoord ? ChannelColor0 : noData;
+	vec4 color1 = dataS.y > invCoord ? ChannelColor1 : noData;
+	vec4 color2 = dataS.z > invCoord ? ChannelColor2 : noData;
+	vec4 color4 = dataS.w > invCoord ? ChannelColor3 : noData;
+
+	vec4 aggregate = 
+		color0 * ChannelEnable.x +
+		color1 * ChannelEnable.y +
+		color2 * ChannelEnable.z +
+		color4 * ChannelEnable.w;
+
+	gl_FragColor = min( aggregate, vec4(1) );
+}
+)glsl";
+
+static ovrProgramParm UniformParms[] = {
+    {.Name = "ChannelEnable", .Type = ovrProgramParmType::FLOAT_VECTOR4},
+    {.Name = "GraphOffset", .Type = ovrProgramParmType::FLOAT_VECTOR2},
+    {.Name = "ChannelData", .Type = ovrProgramParmType::BUFFER_UNIFORM},
+    {.Name = "ChannelColor0", .Type = ovrProgramParmType::FLOAT_VECTOR4},
+    {.Name = "ChannelColor1", .Type = ovrProgramParmType::FLOAT_VECTOR4},
+    {.Name = "ChannelColor2", .Type = ovrProgramParmType::FLOAT_VECTOR4},
+    {.Name = "ChannelColor3", .Type = ovrProgramParmType::FLOAT_VECTOR4},
+};
+
+void ovrPanelRenderer::Init() {
+    Program = GlProgram::Build(
+        VertexSrc, FragmentSrc, UniformParms, sizeof(UniformParms) / sizeof(UniformParms[0]));
+
+    SurfaceDef.geo = BuildTesselatedQuad(1, 1, false);
+
+    ChannelDataBuffer.Create(
+        GLBUFFER_TYPE_UNIFORM, NUM_DATA_POINTS * sizeof(Vector4f), UniformChannelData.data());
+
+    /// Hook the graphics command
+    ovrGraphicsCommand& gc = SurfaceDef.graphicsCommand;
+    gc.Program = Program;
+    gc.UniformData[0].Data = &UniformChannelEnable;
+    gc.UniformData[1].Data = &UniformGraphOffset;
+    gc.UniformData[2].Count = NUM_DATA_POINTS;
+    gc.UniformData[2].Data = &ChannelDataBuffer;
+    gc.UniformData[3].Data = &UniformChannelColor[0];
+    gc.UniformData[4].Data = &UniformChannelColor[1];
+    gc.UniformData[5].Data = &UniformChannelColor[2];
+    gc.UniformData[6].Data = &UniformChannelColor[3];
+
+    /// gpu state needs alpha blending
+    gc.GpuState.depthEnable = gc.GpuState.depthMaskEnable = true;
+    gc.GpuState.blendEnable = ovrGpuState::BLEND_ENABLE;
+    gc.GpuState.blendSrc = ovrGpuState::kGL_SRC_ALPHA;
+    gc.GpuState.blendDst = ovrGpuState::kGL_ONE_MINUS_SRC_ALPHA;
+}
+
+void ovrPanelRenderer::Shutdown() {}
+
+void ovrPanelRenderer::Update(const OVR::Vector4f& dataPoint) {
+    // Update data
+    UniformChannelData[WritePosition] = dataPoint;
+
+    // Update rendering offset
+    const float dataOffsetSize = static_cast<float>(NUM_DATA_POINTS - 1);
+    UniformGraphOffset.x = static_cast<float>(WritePosition) / dataOffsetSize;
+
+    // Move circular buffer
+    WritePosition = (WritePosition + 1) % NUM_DATA_POINTS;
+
+    /// Update the shader uniform parameters
+    ChannelDataBuffer.Update(
+        UniformChannelData.size() * sizeof(Vector4f), UniformChannelData.data());
+}
+
+void ovrPanelRenderer::Render(std::vector<ovrDrawSurface>& surfaceList) {
+    if (SurfaceDef.geo.indexCount > 0) {
+        surfaceList.push_back(ovrDrawSurface(ModelMatrix, &SurfaceDef));
+    }
+}
+
+} // namespace OVRFW

@@ -1,0 +1,311 @@
+/*
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
+ *
+ * Licensed under the Oculus SDK License Agreement (the "License");
+ * you may not use the Oculus SDK except in compliance with the License,
+ * which is provided at the time of installation or download, or which
+ * otherwise accompanies this software in either electronic or hard copy form.
+ *
+ * You may obtain a copy of the License at
+ * https://developer.oculus.com/licenses/oculussdk/
+ *
+ * Unless required by applicable law or agreed to in writing, the Oculus SDK
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/************************************************************************************
+
+Filename    :   Reflection.h
+Content     :   Functions and declarations for introspection and reflection of C++ objects.
+Created     :   11/16/2015
+Authors     :   Jonathan E. Wright
+
+*************************************************************************************/
+
+#pragma once
+
+#include <vector>
+#include <string>
+#include "OVR_Types.h"
+#include "OVR_Lexer2.h"
+
+namespace OVRFW {
+
+struct ovrTypeInfo;
+struct ovrMemberInfo;
+class ovrLocale;
+class ovrReflection;
+
+//==============================================================================================
+// Parsing
+//==============================================================================================
+
+class ovrParseResult {
+   public:
+    ovrParseResult() : Result(ovrLexer::LEX_RESULT_OK), Error() {}
+
+    ovrParseResult(ovrLexer::ovrResult const result, char const* fmt, ...);
+
+    operator bool() const {
+        return Result == ovrLexer::LEX_RESULT_OK;
+    }
+
+    [[nodiscard]] char const* GetErrorText() const {
+        return Error.c_str();
+    }
+
+   private:
+    ovrLexer::ovrResult Result;
+    std::string Error;
+};
+
+ovrParseResult ExpectPunctuation(const char* name, ovrLexer& lex, const char* expected);
+
+ovrParseResult ParseBool(
+    ovrReflection& refl,
+    ovrLocale const& locale,
+    const char* name,
+    ovrLexer& lex,
+    ovrTypeInfo const* /*atomicInfo*/,
+    void* outPtr,
+    size_t const arraySize);
+ovrParseResult ParseInt(
+    ovrReflection& refl,
+    ovrLocale const& locale,
+    const char* name,
+    ovrLexer& lex,
+    ovrTypeInfo const* /*atomicInfo*/,
+    void* outPtr,
+    size_t const arraySize);
+ovrParseResult ParseFloat(
+    ovrReflection& refl,
+    ovrLocale const& locale,
+    const char* name,
+    ovrLexer& lex,
+    ovrTypeInfo const* /*atomicInfo*/,
+    void* outPtr,
+    size_t const arraySize);
+ovrParseResult ParseDouble(
+    ovrReflection& refl,
+    ovrLocale const& locale,
+    const char* name,
+    ovrLexer& lex,
+    ovrTypeInfo const* /*atomicInfo*/,
+    void* outPtr,
+    size_t const arraySize);
+ovrParseResult ParseEnum(
+    ovrReflection& refl,
+    ovrLocale const& locale,
+    const char* name,
+    ovrLexer& lex,
+    ovrTypeInfo const* atomicInfo,
+    void* outPtr,
+    size_t const arraySize);
+ovrParseResult ParseBitFlags(
+    ovrReflection& refl,
+    ovrLocale const& locale,
+    const char* name,
+    ovrLexer& lex,
+    ovrTypeInfo const* atomicInfo,
+    void* outPtr,
+    size_t const arraySize);
+ovrParseResult ParseTypesafeNumber_int(
+    ovrReflection& refl,
+    ovrLocale const& locale,
+    const char* name,
+    ovrLexer& lex,
+    ovrTypeInfo const* atomicInfo,
+    void* outPtr,
+    size_t const arraySize);
+ovrParseResult ParseTypesafeNumber_long_long(
+    ovrReflection& refl,
+    ovrLocale const& locale,
+    const char* name,
+    ovrLexer& lex,
+    ovrTypeInfo const* atomicInfo,
+    void* outPtr,
+    size_t const arraySize);
+ovrParseResult ParseString(
+    ovrReflection& refl,
+    ovrLocale const& locale,
+    const char* name,
+    ovrLexer& lex,
+    ovrTypeInfo const* /*atomicInfo*/,
+    void* outPtr,
+    size_t const arraySize);
+ovrParseResult ParseIntVector(
+    ovrReflection& refl,
+    ovrLocale const& locale,
+    const char* name,
+    ovrLexer& lex,
+    ovrTypeInfo const* /*atomicInfo*/,
+    void* outPtr,
+    size_t const arraySize);
+ovrParseResult ParseFloatVector(
+    ovrReflection& refl,
+    ovrLocale const& locale,
+    const char* name,
+    ovrLexer& lex,
+    ovrTypeInfo const* /*atomicInfo*/,
+    void* outPtr,
+    size_t const arraySize);
+ovrParseResult ParseArray(
+    ovrReflection& refl,
+    ovrLocale const& locale,
+    const char* name,
+    ovrLexer& lex,
+    ovrTypeInfo const* arrayTypeInfo,
+    void* arrayPtr,
+    size_t const arraySize);
+ovrParseResult ParseObject(
+    ovrReflection& refl,
+    ovrLocale const& locale,
+    const char* name,
+    ovrLexer& lex,
+    ovrTypeInfo const* objectTypeInfo,
+    void* objPtr,
+    size_t const arraySize);
+
+//==============================================================================================
+// Reflection data types
+//==============================================================================================
+
+typedef ovrParseResult (*ParseFn_t)(
+    ovrReflection& refl,
+    ovrLocale const& locale,
+    char const* name,
+    ovrLexer& lex,
+    ovrTypeInfo const* typeInfo,
+    void* outPtr,
+    const size_t arraySize);
+typedef void* (*CreateFn_t)(void* placementBuffer);
+typedef void (*ResizeArrayFn_t)(void* objPtr, const int newSize);
+typedef void (*SetArrayElementFn_t)(void* objPtr, const int index, void* elementPtr);
+
+enum class ovrArrayType : char {
+    NONE,
+    OVR_OBJECT, // std::vector< T* >
+    OVR_POINTER, // std::vector< T >
+    C_OBJECT, // T[]
+    C_POINTER // T*[]
+};
+
+struct ovrEnumInfo {
+    char const* Name;
+    int Value;
+};
+
+struct ovrTypeInfo {
+    char const* TypeName;
+    const char* ParentTypeName; // this would need to be an array to support multiple inheritance
+    size_t Size;
+    ovrEnumInfo const* EnumInfos;
+    ParseFn_t ParseFn;
+    CreateFn_t CreateFn;
+    ResizeArrayFn_t ResizeArrayFn;
+    SetArrayElementFn_t SetArrayElementFn;
+    ovrArrayType ArrayType; /// FIXME: only a member can have an array type... a type itself can't
+                            /// be an array? NOT TRUE FOR CLASSES
+    bool Abstract; // true if class is abstract
+    ovrMemberInfo const* MemberInfo;
+};
+
+enum class ovrTypeOperator : char { NONE, POINTER, REFERENCE, ARRAY, MAX };
+
+struct ovrMemberInfo {
+    char const* MemberName;
+    const char* TypeName;
+    ovrTypeInfo const* VarType; // cached pointer to type?
+    ovrTypeOperator Operator;
+    intptr_t Offset;
+    size_t ArraySize; // If an array, this is the number of items in the array, otherwise it's 0.
+};
+
+//==============================================================================================
+// Reflection Functions
+//==============================================================================================
+
+class ovrReflectionOverload {
+   public:
+    enum ovrOverloadType { OVERLOAD_FLOAT_DEFAULT_VALUE };
+
+    ovrReflectionOverload(ovrOverloadType const type, char const* scope, char const* name)
+        : Type(type), Scope(scope), Name(name) {}
+    virtual ~ovrReflectionOverload() {}
+
+    [[nodiscard]] ovrOverloadType GetType() const {
+        return Type;
+    }
+    [[nodiscard]] char const* GetScope() const {
+        return Scope.c_str();
+    }
+    [[nodiscard]] char const* GetName() const {
+        return Name.c_str();
+    }
+
+    [[nodiscard]] virtual bool OverloadsMemberVar() const {
+        return false;
+    }
+
+   private:
+    ovrOverloadType Type;
+    std::string Scope;
+    std::string Name;
+};
+
+class ovrReflectionOverload_FloatDefaultValue : public ovrReflectionOverload {
+   public:
+    ovrReflectionOverload_FloatDefaultValue(char const* scope, char const* name, float const value)
+        : ovrReflectionOverload(ovrReflectionOverload::OVERLOAD_FLOAT_DEFAULT_VALUE, scope, name),
+          Value(value) {}
+
+    [[nodiscard]] float GetValue() const {
+        return Value;
+    }
+    [[nodiscard]] virtual bool OverloadsMemberVar() const override {
+        return true;
+    }
+
+   private:
+    float Value;
+};
+
+class ovrReflection {
+   public:
+    static ovrReflection* Create();
+    static void Destroy(ovrReflection*& r);
+
+    void Init();
+    void Shutdown();
+    // Add an additional list of types. The list must be terminated by a a
+    void AddTypeInfoList(ovrTypeInfo const* list);
+
+    ovrMemberInfo const* FindMemberReflectionInfoRecursive(
+        ovrTypeInfo const* objectTypeInfo,
+        const char* memberName);
+    static ovrMemberInfo const* FindMemberReflectionInfo(
+        ovrMemberInfo const* arrayOfMemberType,
+        const char* memberName);
+    ovrTypeInfo const* FindTypeInfo(char const* typeName);
+
+    void AddOverload(ovrReflectionOverload* o) {
+        Overloads.push_back(o);
+    }
+    ovrReflectionOverload const* FindOverload(char const* scope) const;
+
+   protected:
+    static ovrTypeInfo const* StaticFindTypeInfo(ovrTypeInfo const* list, char const* typeName);
+
+   private:
+    std::vector<ovrTypeInfo const*> TypeInfoLists;
+    std::vector<ovrReflectionOverload*> Overloads;
+
+    // can only be allocated and deleted by ovrReflection::Create and ovrReflection::Destroy
+    ovrReflection() {};
+    virtual ~ovrReflection() {}
+};
+
+} // namespace OVRFW

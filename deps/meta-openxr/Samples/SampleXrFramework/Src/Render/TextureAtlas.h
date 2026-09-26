@@ -1,0 +1,125 @@
+/*
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
+ *
+ * Licensed under the Oculus SDK License Agreement (the "License");
+ * you may not use the Oculus SDK except in compliance with the License,
+ * which is provided at the time of installation or download, or which
+ * otherwise accompanies this software in either electronic or hard copy form.
+ *
+ * You may obtain a copy of the License at
+ * https://developer.oculus.com/licenses/oculussdk/
+ *
+ * Unless required by applicable law or agreed to in writing, the Oculus SDK
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/************************************************************************************
+
+Filename    :   TextureAtlas.h
+Content     :   A simple particle system for System Activities.
+Created     :   October 23, 2015
+Authors     :   Jonathan E. Wright
+
+************************************************************************************/
+
+#pragma once
+
+#include <vector>
+#include <string>
+
+#include "OVR_Math.h"
+
+#include "OVR_FileSys.h"
+#include "SurfaceRender.h"
+#include "GlTexture.h"
+
+namespace OVRFW {
+
+// typedef float (*ovrAlphaFunc_t)( const double t );
+
+class ovrTextureAtlas {
+   public:
+    // class describing each sprite in the atlas
+    class ovrSpriteDef {
+       public:
+        ovrSpriteDef() : uvMins(0.0f, 0.0f), uvMaxs(1.0f, 1.0f) {}
+
+        ovrSpriteDef(const char* name, const OVR::Vector2f& uvMinsIn, const OVR::Vector2f& uvMaxsIn)
+            : Name(name), uvMins(uvMinsIn), uvMaxs(uvMaxsIn) {}
+
+        ovrSpriteDef(
+            const char* name,
+            const float u0,
+            const float v0,
+            const float u1,
+            const float v1)
+            : Name(name), uvMins(u0, v0), uvMaxs(u1, v1) {}
+
+        std::string Name; // name of the sprite texture
+        OVR::Vector2f uvMins; // bounds in texture space
+        OVR::Vector2f uvMaxs;
+    };
+
+    ovrTextureAtlas();
+    ~ovrTextureAtlas();
+
+    // Specify the texture to load for this atlas.
+    bool Init(ovrFileSys& fileSys, const char* atlasTextureName);
+
+    bool SetSpriteDefs(const std::vector<ovrSpriteDef>& sprites);
+    void SetSpriteName(const int index, const char* name);
+
+    void Shutdown();
+
+    // Divides the atlas texture evenly into columns * rows sprites. If numSprites is 0
+    // then the function assumes all grid blocks are occupied by a valid sprite. If
+    // numSprites != 0 then only the first numSprites slots are presumed filled.
+    // The texture width and height should be evenly divisiable by the colums and rows to
+    // avoid sub-pixel UV boundaries.
+    bool
+    BuildSpritesFromGrid(const int numSpriteColumns, const int numSpriteRows, const int numSprites);
+
+    [[nodiscard]] int GetNumSprites() const {
+        return static_cast<int>(Sprites.size());
+    }
+    [[nodiscard]] const GlTexture& GetTexture() const {
+        return AtlasTexture;
+    }
+    [[nodiscard]] const ovrSpriteDef& GetSpriteDef(const int index) const {
+        return Sprites[index];
+    }
+    const ovrSpriteDef& GetSpriteDef(const char* spriteName) const;
+    [[nodiscard]] const std::string& GetTextureName() const {
+        return TextureName;
+    }
+    [[nodiscard]] int GetTextureWidth() const {
+        return TextureWidth;
+    }
+    [[nodiscard]] int GetTextureHeight() const {
+        return TextureHeight;
+    }
+
+    static void GetUVsForGridCell(
+        const int x,
+        const int y,
+        const int numColumns,
+        const int numRows,
+        const int textureWidth,
+        const int textureHeight,
+        const int borderX,
+        const int borderY,
+        OVR::Vector2f& uvMins,
+        OVR::Vector2f& uvMaxs);
+
+   private:
+    std::vector<ovrSpriteDef> Sprites;
+    GlTexture AtlasTexture;
+    int TextureWidth;
+    int TextureHeight;
+    std::string TextureName;
+};
+
+} // namespace OVRFW

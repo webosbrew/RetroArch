@@ -1,0 +1,305 @@
+/*
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
+ *
+ * Licensed under the Oculus SDK License Agreement (the "License");
+ * you may not use the Oculus SDK except in compliance with the License,
+ * which is provided at the time of installation or download, or which
+ * otherwise accompanies this software in either electronic or hard copy form.
+ *
+ * You may obtain a copy of the License at
+ * https://developer.oculus.com/licenses/oculussdk/
+ *
+ * Unless required by applicable law or agreed to in writing, the Oculus SDK
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/************************************************************************************
+
+Filename    :   ControllerRenderer.cpp
+Content     :   A one stop for rendering controllers
+Created     :   July 2020
+Authors     :   Federico Schliemann
+
+************************************************************************************/
+
+#include "ControllerRenderer.h"
+
+#include <array>
+#include "Render/GeometryBuilder.h"
+#include "Render/GlGeometry.h"
+
+using OVR::Matrix4f;
+using OVR::Posef;
+using OVR::Quatf;
+using OVR::Vector3f;
+using OVR::Vector4f;
+
+namespace OVRFW::Controller {
+
+/// clang-format off
+static const char* VertexShaderSrc = R"glsl(
+attribute highp vec4 Position;
+attribute highp vec3 Normal;
+#ifdef USE_COLOR
+attribute highp vec3 Tangent;  // not used
+attribute highp vec3 Binormal; // not used
+attribute lowp vec4 VertexColor;
+#endif
+
+#ifdef USE_TEXTURE
+attribute highp vec2 TexCoord;
+attribute highp vec4 JointIndices;
+attribute highp vec4 JointWeights;
+#endif
+
+varying lowp vec3 oEye;
+varying lowp vec3 oNormal;
+varying lowp vec2 oTexCoord;
+varying lowp vec4 oColor;
+
+vec3 multiply( mat4 m, vec3 v )
+{
+  return vec3(
+  m[0].x * v.x + m[1].x * v.y + m[2].x * v.z,
+  m[0].y * v.x + m[1].y * v.y + m[2].y * v.z,
+  m[0].z * v.x + m[1].z * v.y + m[2].z * v.z );
+}
+
+vec3 transposeMultiply( mat4 m, vec3 v )
+{
+  return vec3(
+  m[0].x * v.x + m[0].y * v.y + m[0].z * v.z,
+  m[1].x * v.x + m[1].y * v.y + m[1].z * v.z,
+  m[2].x * v.x + m[2].y * v.y + m[2].z * v.z );
+}
+
+void main()
+{
+  gl_Position = TransformVertex( Position );
+  highp vec3 eye = transposeMultiply( sm.ViewMatrix[VIEW_ID], -vec3( sm.ViewMatrix[VIEW_ID][3] ) );
+  oEye = eye - vec3( ModelMatrix * Position );
+
+  oNormal = multiply( ModelMatrix, Normal );
+
+#ifdef USE_COLOR
+  oTexCoord = vec2(0.5,0.5);
+  oColor = VertexColor;
+#else
+  oTexCoord = TexCoord;
+  oColor = vec4(1,1,1,1);
+#endif
+}
+)glsl";
+
+static const char* FragmentShaderSrc = R"glsl(
+uniform lowp vec3 SpecularLightDirection;
+uniform lowp vec3 SpecularLightColor;
+uniform lowp vec3 AmbientLightColor;
+#ifdef USE_TEXTURE
+uniform sampler2D Texture0;
+#endif
+
+varying lowp vec3 oEye;
+varying lowp vec3 oNormal;
+varying lowp vec2 oTexCoord;
+varying lowp vec4 oColor;
+
+lowp vec3 multiply( lowp mat3 m, lowp vec3 v )
+{
+  return vec3(
+  m[0].x * v.x + m[1].x * v.y + m[2].x * v.z,
+  m[0].y * v.x + m[1].y * v.y + m[2].y * v.z,
+  m[0].z * v.x + m[1].z * v.y + m[2].z * v.z );
+}
+
+void main()
+{
+  lowp vec3 eyeDir = normalize( oEye.xyz );
+  lowp vec3 Normal = normalize( oNormal );
+
+  lowp vec3 reflectionDir = dot( eyeDir, Normal ) * 2.0 * Normal - eyeDir;
+
+  lowp vec4 diffuse = oColor;
+#ifdef USE_TEXTURE
+  diffuse = texture2D( Texture0, oTexCoord );
+#endif
+
+  lowp vec3 ambientValue = diffuse.xyz * AmbientLightColor;
+
+  lowp float nDotL = max( dot( Normal , SpecularLightDirection ), 0.0 );
+  lowp vec3 diffuseValue = diffuse.xyz * SpecularLightColor * nDotL;
+
+  lowp float specularPower = 1.0f;
+  lowp vec3 H = normalize( SpecularLightDirection + eyeDir );
+  lowp float nDotH = max( dot( Normal, H ), 0.0 );
+  lowp float specularIntensity = pow( nDotH, 64.0f * ( specularPower ) ) * specularPower;
+  lowp vec3 specularValue = specularIntensity * SpecularLightColor;
+
+  lowp vec3 controllerColor = diffuseValue + ambientValue + specularValue;
+  gl_FragColor.xyz = controllerColor;
+  gl_FragColor.w = 1.0f;
+}
+)glsl";
+/// clang-format on
+
+} // namespace OVRFW::Controller
+
+namespace OVRFW {
+
+void ControllerRenderer::LoadModelFromResource(
+    OVRFW::ovrFileSys* fileSys,
+    const char* controllerModelFile) {
+    if (model_) {
+        delete model_;
+        model_ = nullptr;
+    }
+    if (controllerModelFile && fileSys) {
+        ModelGlPrograms programs(&progControllerTexture_);
+        MaterialParms materials;
+        model_ = LoadModelFile(*fileSys, controllerModelFile, programs, materials);
+        if (model_ != nullptr) {
+            for (auto& model : model_->Models) {
+                auto& gc = model.surfaces[0].surfaceDef.graphicsCommand;
+                gc.UniformData[0].Data = &specularLightDirection;
+                gc.UniformData[1].Data = &specularLightColor;
+                gc.UniformData[2].Data = &ambientLightColor;
+                gc.UniformData[3].Data = &gc.Textures[0];
+                /// gpu state needs alpha blending
+                gc.GpuState.depthEnable = gc.GpuState.depthMaskEnable = true;
+                gc.GpuState.blendEnable = ovrGpuState::BLEND_ENABLE;
+                gc.GpuState.blendSrc = ovrGpuState::kGL_SRC_ALPHA;
+                gc.GpuState.blendDst = ovrGpuState::kGL_ONE_MINUS_SRC_ALPHA;
+                controllerSurfaceDef_ = model.surfaces[0].surfaceDef;
+            }
+            controllerSurface_.surface = &(controllerSurfaceDef_);
+        }
+    }
+}
+
+bool ControllerRenderer::Init(
+    bool leftController,
+    OVRFW::ovrFileSys* fileSys,
+    const char* controllerModelFile,
+    const OVR::Matrix4f& poseCorrectionParam) {
+    model_ = nullptr;
+
+    this->poseCorrection = poseCorrectionParam;
+
+    /// Shader
+    auto UniformParms = std::to_array<ovrProgramParm>({
+        {.Name = "SpecularLightDirection", .Type = ovrProgramParmType::FLOAT_VECTOR3},
+        {.Name = "SpecularLightColor", .Type = ovrProgramParmType::FLOAT_VECTOR3},
+        {.Name = "AmbientLightColor", .Type = ovrProgramParmType::FLOAT_VECTOR3},
+        {.Name = "Texture0", .Type = ovrProgramParmType::TEXTURE_SAMPLED},
+    });
+    progControllerTexture_ = GlProgram::Build(
+        "#define USE_TEXTURE 1\n",
+        Controller::VertexShaderSrc,
+        "#define USE_TEXTURE 1\n",
+        Controller::FragmentShaderSrc,
+        UniformParms.data(),
+        4);
+
+    progControllerColor_ = GlProgram::Build(
+        "#define USE_COLOR 1\n",
+        Controller::VertexShaderSrc,
+        "#define USE_COLOR 1\n",
+        Controller::FragmentShaderSrc,
+        UniformParms.data(),
+        3);
+
+    /// Create surface definition
+    controllerSurfaceDef_.surfaceName =
+        leftController ? "ControllerSurfaceL" : "ControllerSurfaceR";
+
+    /// Atempt to load a resource if passed in
+    LoadModelFromResource(fileSys, controllerModelFile);
+
+    /// Build geometry from mesh
+    if (model_ == nullptr) {
+        /// We didn't get a resource, build using gemetry primitives
+        OVRFW::GeometryBuilder gb;
+
+        /// Loosely hand-calibrated for Quest 2 controllers, based on OpenXR 'hand/x/grip/pose'
+        /// If you're here to fix controller offset using vrapi you need a conversion
+        /// long capsure
+        const Matrix4f capsuleMatrix = Matrix4f::Translation({0.00f, -0.015f, -0.01f}) *
+            Matrix4f::RotationX(OVR::DegreeToRad(90.0f + 20.0f));
+
+        gb.Add(
+            OVRFW::BuildTesselatedCapsuleDescriptor(0.02f, 0.08f, 10, 7),
+            0,
+            {1.0f, 0.9f, 0.25f, 1.0f},
+            capsuleMatrix);
+
+        /// ring
+        const Matrix4f ringMatrix = Matrix4f::Translation({0.0f, 0.02f, 0.04f});
+        gb.Add(
+            OVRFW::BuildTesselatedCylinderDescriptor(0.04f, 0.015f, 24, 2, 1.0f, 1.0f),
+            0,
+            {0.6f, 0.8f, 0.25f, 1.0f},
+            ringMatrix);
+
+        controllerSurfaceDef_.geo = gb.ToGeometry();
+
+        ovrGraphicsCommand& gc = controllerSurfaceDef_.graphicsCommand;
+        gc.GpuState.cullEnable = false; // Double sided
+    }
+
+    /// Build the graphics command
+    ovrGraphicsCommand& gc = controllerSurfaceDef_.graphicsCommand;
+
+    /// Program
+    gc.Program = (model_ == nullptr) ? progControllerColor_ : progControllerTexture_;
+    /// Uniforms to match UniformParms abovve
+    gc.UniformData[0].Data = &specularLightDirection;
+    gc.UniformData[1].Data = &specularLightColor;
+    gc.UniformData[2].Data = &ambientLightColor;
+    if (model_ != nullptr) {
+        gc.UniformData[3].Data = &gc.Textures[0];
+    }
+    /// gpu state needs alpha blending
+    gc.GpuState.depthEnable = gc.GpuState.depthMaskEnable = true;
+    gc.GpuState.blendEnable = ovrGpuState::BLEND_ENABLE;
+    gc.GpuState.blendSrc = ovrGpuState::kGL_SRC_ALPHA;
+    gc.GpuState.blendDst = ovrGpuState::kGL_ONE_MINUS_SRC_ALPHA;
+
+    /// Add surface
+    controllerSurface_.surface = &(controllerSurfaceDef_);
+
+    /// Set defaults
+    specularLightDirection = OVR::Vector3f{1.0f, 1.0f, 0.0f}.Normalized();
+    specularLightColor = {1.0f, 0.95f, 0.8f};
+    ambientLightColor = {0.15f, 0.15f, 0.15f};
+
+    /// Set hand
+    isLeftController_ = leftController;
+
+    /// all good
+    return true;
+}
+
+void ControllerRenderer::Shutdown() {
+    OVRFW::GlProgram::Free(progControllerTexture_);
+    OVRFW::GlProgram::Free(progControllerColor_);
+    controllerSurfaceDef_.geo.Free();
+    if (model_ != nullptr) {
+        delete model_;
+        model_ = nullptr;
+    }
+}
+
+void ControllerRenderer::Update(const OVR::Posef& pose) {
+    const OVR::Posef controllerPose = pose;
+    const OVR::Matrix4f matDeviceModel = OVR::Matrix4f(controllerPose) * poseCorrection;
+    controllerSurface_.modelMatrix = matDeviceModel;
+}
+
+void ControllerRenderer::Render(std::vector<ovrDrawSurface>& surfaceList) {
+    surfaceList.push_back(controllerSurface_);
+}
+
+} // namespace OVRFW

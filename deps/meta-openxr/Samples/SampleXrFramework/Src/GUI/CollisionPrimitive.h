@@ -1,0 +1,172 @@
+/*
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
+ *
+ * Licensed under the Oculus SDK License Agreement (the "License");
+ * you may not use the Oculus SDK except in compliance with the License,
+ * which is provided at the time of installation or download, or which
+ * otherwise accompanies this software in either electronic or hard copy form.
+ *
+ * You may obtain a copy of the License at
+ * https://developer.oculus.com/licenses/oculussdk/
+ *
+ * Unless required by applicable law or agreed to in writing, the Oculus SDK
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/************************************************************************************
+
+Filename    :   CollisionPrimitive.h
+Content     :   Generic collision class supporting ray / triangle intersection.
+Created     :   September 10, 2014
+Authors     :   Jonathan E. Wright
+
+*************************************************************************************/
+
+#pragma once
+
+#include <vector>
+#include <cstdlib>
+
+#include "OVR_BitFlags.h"
+
+#include "Render/GlGeometry.h" // For TriangleIndex
+
+namespace OVRFW {
+
+class OvrDebugLines;
+
+enum eContentFlags { CONTENT_NONE = 0, CONTENT_SOLID, CONTENT_ALL = 0x7fffffff };
+
+using ContentFlags_t = OVR::BitFlagsT<eContentFlags>;
+
+//==============================================================
+// OvrCollisionResult
+// Structure that holds the result of a collision
+class OvrCollisionResult {
+   public:
+    OvrCollisionResult() : t(FLT_MAX), uv(0.0f), triIndex(-1) {}
+
+    float t; // fraction along line where the intersection occurred
+    OVR::Vector2f uv; // texture coordinate of intersection
+    std::int64_t triIndex; // index of triangle hit (local to collider)
+    OVR::Vector2f barycentric; // barycentric coordinates intersection
+};
+
+//==============================================================
+// OvrCollisionPrimitive
+// Base class for a collision primitive.
+class OvrCollisionPrimitive {
+   public:
+    OvrCollisionPrimitive() {}
+    OvrCollisionPrimitive(ContentFlags_t const contents) : contents_(contents) {}
+    virtual ~OvrCollisionPrimitive();
+
+    virtual bool IntersectRay(
+        OVR::Vector3f const& start,
+        OVR::Vector3f const& dir,
+        OVR::Posef const& pose,
+        OVR::Vector3f const& scale,
+        ContentFlags_t const testContents,
+        OvrCollisionResult& result) const = 0;
+    // the ray should already be in local space
+    virtual bool IntersectRay(
+        OVR::Vector3f const& localStart,
+        OVR::Vector3f const& localDir,
+        OVR::Vector3f const& scale,
+        ContentFlags_t const testContents,
+        OvrCollisionResult& result) const = 0;
+
+    // test for ray intersection against only the AAB
+    bool IntersectRayBounds(
+        OVR::Vector3f const& start,
+        OVR::Vector3f const& dir,
+        OVR::Vector3f const& scale,
+        ContentFlags_t const testContents,
+        float& t0,
+        float& t1) const;
+
+    virtual void DebugRender(
+        OvrDebugLines& debugLines,
+        OVR::Posef& pose,
+        OVR::Vector3f const& scale,
+        bool const showNormals) const = 0;
+
+    [[nodiscard]] ContentFlags_t GetContents() const {
+        return contents_;
+    }
+    void SetContents(ContentFlags_t const contents) {
+        contents_ = contents;
+    }
+
+    [[nodiscard]] OVR::Bounds3f const& GetBounds() const {
+        return bounds_;
+    }
+    void SetBounds(OVR::Bounds3f const& bounds) {
+        bounds_ = bounds;
+    }
+
+   protected:
+    bool IntersectRayBounds(
+        OVR::Vector3f const& start,
+        OVR::Vector3f const& dir,
+        OVR::Vector3f const& scale,
+        float& t0,
+        float& t1) const;
+
+   private:
+    ContentFlags_t contents_; // flags dictating what can hit this primitive
+    OVR::Bounds3f bounds_; // Axial-aligned bounds of the primitive
+};
+
+//==============================================================
+// OvrTriCollisionPrimitive
+// Collider that handles collision vs. polygons and stores those polygons itself.
+class OvrTriCollisionPrimitive : public OvrCollisionPrimitive {
+   public:
+    OvrTriCollisionPrimitive();
+    OvrTriCollisionPrimitive(
+        std::vector<OVR::Vector3f> const& vertices,
+        std::vector<TriangleIndex> const& indices,
+        std::vector<OVR::Vector2f> const& uvs,
+        ContentFlags_t const contents);
+
+    ~OvrTriCollisionPrimitive() override;
+
+    void Init(
+        std::vector<OVR::Vector3f> const& vertices,
+        std::vector<TriangleIndex> const& indices,
+        std::vector<OVR::Vector2f> const& uvs,
+        ContentFlags_t const contents);
+
+    virtual bool IntersectRay(
+        OVR::Vector3f const& start,
+        OVR::Vector3f const& dir,
+        OVR::Posef const& pose,
+        OVR::Vector3f const& scale,
+        ContentFlags_t const testContents,
+        OvrCollisionResult& result) const override;
+
+    // the ray should already be in local space
+    virtual bool IntersectRay(
+        OVR::Vector3f const& localStart,
+        OVR::Vector3f const& localDir,
+        OVR::Vector3f const& scale,
+        ContentFlags_t const testContents,
+        OvrCollisionResult& result) const override;
+
+    virtual void DebugRender(
+        OvrDebugLines& debugLines,
+        OVR::Posef& pose,
+        OVR::Vector3f const& scale,
+        bool const showNormals) const override;
+
+   private:
+    std::vector<OVR::Vector3f> vertices_; // vertices for all triangles
+    std::vector<TriangleIndex> indices_; // indices indicating which vertices make up each triangle
+    std::vector<OVR::Vector2f> uvs_; // uvs for each vertex
+};
+
+} // namespace OVRFW

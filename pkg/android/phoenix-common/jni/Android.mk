@@ -12,6 +12,7 @@ HAVE_FILE_LOGGER := 1
 HAVE_GFX_WIDGETS := 1
 HAVE_SAF := 1
 HAVE_BUILTINSMBCLIENT := 1
+HAVE_OPENXR := 0
 
 INCFLAGS    :=
 DEFINES     :=
@@ -38,6 +39,35 @@ endif
 
 ifneq ($(GIT_VERSION),)
    DEFINES += -DHAVE_GIT_VERSION -DGIT_VERSION=$(GIT_VERSION)
+endif
+
+# cmake -S . -B build/android-arm64 -DCMAKE_TOOLCHAIN_FILE="$ANDROID_SDK_ROOT/ndk/29.0.14206865/build/cmake/android.toolchain.cmake" \
+  -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-29 -DDYNAMIC_LOADER=ON -DCMAKE_BUILD_TYPE=Release
+ifeq ($(HAVE_OPENXR),1)
+
+OPENXR_DIR := $(RARCH_DIR)/deps/openxr
+OPENXR_BUILD_DIR := $(OPENXR_DIR)/build/android-arm64
+OPENXR_LOADER := $(OPENXR_BUILD_DIR)/src/loader/libopenxr_loader.so
+
+ifneq ($(wildcard $(LOCAL_PATH)/$(OPENXR_LOADER)),)
+else
+$(shell cd $(LOCAL_PATH)/$(OPENXR_DIR) && \
+	cmake -S . -B build/android-arm64 \
+		-DCMAKE_TOOLCHAIN_FILE="$(ANDROID_SDK_ROOT)/ndk/29.0.14206865/build/cmake/android.toolchain.cmake" \
+		-DANDROID_ABI=arm64-v8a \
+		-DANDROID_PLATFORM=android-29 \
+		-DDYNAMIC_LOADER=ON \
+		-DCMAKE_BUILD_TYPE=Release && \
+	cmake --build build/android-arm64 --target openxr_loader -j$$(nproc))
+endif
+
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := openxr_loader
+LOCAL_SRC_FILES := $(OPENXR_LOADER)
+
+include $(PREBUILT_SHARED_LIBRARY)
+
 endif
 
 include $(CLEAR_VARS)
@@ -190,6 +220,14 @@ DEFINES += -DHAVE_VULKAN \
 	   -DWANT_GLSLANG \
 	   -D__STDC_LIMIT_MACROS
 endif
+
+ifeq ($(HAVE_OPENXR),1)
+DEFINES += -DHAVE_OPENXR
+OPENXR_DIR := $(RARCH_DIR)/deps/openxr
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/$(OPENXR_DIR)/Include
+LOCAL_SRC_FILES  += $(RARCH_DIR)/griffin/griffin_openxr.c
+endif
+
 DEFINES += -DHAVE_7ZIP \
 	   \
 	   -DHAVE_SL
@@ -256,6 +294,10 @@ LOCAL_SRC_FILES += $(RARCH_DIR)/griffin/griffin_glslang.cpp
 endif
 
 LOCAL_LDLIBS += -lOpenSLES
+
+ifeq ($(HAVE_OPENXR),1)
+LOCAL_SHARED_LIBRARIES += openxr_loader
+endif
 
 ifneq ($(SANITIZER),)
    LOCAL_CFLAGS   += -g -fsanitize=$(SANITIZER) -fno-omit-frame-pointer
